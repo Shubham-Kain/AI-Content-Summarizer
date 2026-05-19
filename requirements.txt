@@ -7,3 +7,8 @@ beautifulsoup4
 st-copy-to-clipboard
 strip-markdown
 re
+langchain
+langchain-community
+chromadb
+pypdf
+sentence-transformers

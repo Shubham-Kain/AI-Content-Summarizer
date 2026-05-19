@@ -3,42 +3,75 @@ from dotenv import load_dotenv
 from google import genai
 from openai import OpenAI
 
+
 class Model:
-    def __init__(self):
-        load_dotenv()
+
+    @staticmethod
+    def _validate_transcript(transcript: str) -> str | None:
+        """Returns None if transcript is missing/invalid, else the transcript."""
+        if not transcript or not isinstance(transcript, str):
+            return None
+        stripped = transcript.strip()
+        if not stripped:
+            return None
+        return stripped
 
     @staticmethod
     def google_gemini(transcript, prompt, extra="", model_type="gemini-2.5-flash"):
         load_dotenv()
+
+        # BUG FIX: validate transcript BEFORE sending to model
+        clean_transcript = Model._validate_transcript(transcript)
+        if clean_transcript is None:
+            return "⚠️ No transcript was found for this video. Cannot generate a summary."
+
         try:
-            client = genai.Client(
-                api_key=os.getenv("GOOGLE_GEMINI_API_KEY")
+            client = genai.Client(api_key=os.getenv("GOOGLE_GEMINI_API_KEY"))
+
+            # BUG FIX: added clear separator so transcript doesn't bleed into prompt
+            full_content = (
+                f"{prompt}\n\n"
+                f"{extra}\n\n"
+                f"--- TRANSCRIPT START ---\n{clean_transcript}\n--- TRANSCRIPT END ---"
             )
 
             response = client.models.generate_content(
                 model=model_type,
-                contents=prompt + extra + transcript
+                contents=full_content,
             )
-
             return response.text
+
         except Exception as e:
-            response_error = "⚠️ There is a problem with the API key or with python module."
-            return response_error, str(e)
-    
+            # BUG FIX: was returning a tuple (error_str, str(e)) — now returns plain string
+            return f"⚠️ Gemini API error: {str(e)}"
+
     @staticmethod
-    def openai_gpt(transcript, prompt, extra="", model_type="gpt-5-nano"):
+    def openai_gpt(transcript, prompt, extra="", model_type="gpt-4o-mini"):
         load_dotenv()
+
+        # BUG FIX: validate transcript BEFORE sending to model
+        clean_transcript = Model._validate_transcript(transcript)
+        if clean_transcript is None:
+            return "⚠️ No transcript was found for this video. Cannot generate a summary."
+
         try:
-            client = OpenAI(
-                api_key=os.getenv("OPENAI_API_KEY")
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+            # BUG FIX: added clear separator
+            full_content = (
+                f"{prompt}\n\n"
+                f"{extra}\n\n"
+                f"--- TRANSCRIPT START ---\n{clean_transcript}\n--- TRANSCRIPT END ---"
             )
 
-            response = client.responses.create(
+            # BUG FIX: was using client.responses.create (Responses API — wrong).
+            # Standard Chat Completions API is client.chat.completions.create.
+            response = client.chat.completions.create(
                 model=model_type,
-                input=prompt + extra + transcript
+                messages=[{"role": "user", "content": full_content}],
             )
+            return response.choices[0].message.content
 
-            return response.output_text
         except Exception as e:
-            response_error = "⚠️ There is a problem with the API key or with python module."
-            return response_error, str(e)
+            # BUG FIX: was returning a tuple — now returns plain string
+            return f"⚠️ OpenAI API error: {str(e)}"
