@@ -1,9 +1,10 @@
 import os
 import tempfile
+import re
 from pypdf import PdfReader
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 
 class PDFProcessor:
@@ -79,12 +80,15 @@ class PDFProcessor:
                 for i, chunk in enumerate(chunks)
             ]
             
+            # Sanitize collection name - must contain 3-512 characters from [a-zA-Z0-9._-]
+            collection_name = self._sanitize_collection_name(pdf_name)
+            
             # Create or update vector store
             self.vectorstore = Chroma.from_documents(
                 documents=documents,
                 embedding=self.embeddings,
                 persist_directory=self.persist_dir,
-                collection_name=pdf_name.replace(".pdf", "")
+                collection_name=collection_name
             )
             
             # Save metadata
@@ -120,6 +124,38 @@ class PDFProcessor:
             start = end - overlap
         
         return chunks
+    
+    def _sanitize_collection_name(self, pdf_name: str) -> str:
+        """
+        Sanitize PDF filename to valid Chroma collection name.
+        Collection names must contain 3-512 characters from [a-zA-Z0-9._-],
+        starting and ending with [a-zA-Z0-9].
+        
+        Args:
+            pdf_name: Original PDF filename
+            
+        Returns:
+            Sanitized collection name
+        """
+        # Remove .pdf extension
+        name = pdf_name.replace(".pdf", "").replace(".PDF", "")
+        
+        # Replace spaces and special characters with underscores
+        name = re.sub(r'[^a-zA-Z0-9._-]', '_', name)
+        
+        # Remove leading/trailing non-alphanumeric characters
+        name = re.sub(r'^[^a-zA-Z0-9]+', '', name)
+        name = re.sub(r'[^a-zA-Z0-9]+$', '', name)
+        
+        # Ensure minimum length of 3 characters
+        if len(name) < 3:
+            name = name + '_pdf' if name else 'pdf_document'
+        
+        # Truncate to maximum length of 512 characters
+        if len(name) > 512:
+            name = name[:512]
+        
+        return name
     
     def query_vector_store(self, query: str, k: int = 4) -> list[str]:
         """

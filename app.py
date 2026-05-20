@@ -443,6 +443,79 @@ class AIVideoSummarizer:
             self._show_copy_download(self.transcript, f"{self.video_title}_transcript.txt")
             st.text_area("Full Transcript", self.transcript, height=420, label_visibility="collapsed")
 
+    # ── YouTube Mode: Q&A ────────────────────────────────────────────────────
+
+    def video_question_answering(self, loader_msg):
+        """Answer questions about YouTube video content using transcript."""
+        # Auto-generate transcript if not already available
+        if not self.transcript:
+            st.info("🔄 Fetching transcript first…", icon="ℹ️")
+            
+            with st.status(loader_msg, expanded=True) as status:
+                status.update(label="📥 Fetching transcript…", state="running")
+                
+                try:
+                    raw = get_transcript_cached(self.youtube_url)
+                    transcript, err = _unpack_transcript(raw)
+                    
+                    if not transcript:
+                        status.update(label="Transcript fetch failed.", state="error")
+                        st.error(
+                            f"❌ Could not fetch transcript.\n\n**Reason:** {err or 'Unknown error'}",
+                            icon="📋",
+                        )
+                        return
+                    
+                    self.transcript = transcript
+                    status.update(label="✅ Transcript ready!", state="complete")
+                    
+                except Exception as err:
+                    status.update(label="Failed to fetch transcript.", state="error")
+                    st.error(f"❌ Error: {err}", icon="📋")
+                    return
+
+        st.markdown('<div class="section-header">Ask a Question</div>', unsafe_allow_html=True)
+        user_question = st.text_input(
+            "Ask something about the video",
+            placeholder="What are the main topics discussed?",
+            label_visibility="collapsed",
+        )
+
+        if st.button("❓ Get Answer", use_container_width=True):
+            if not user_question.strip():
+                st.warning("Please enter a question", icon="⚠️")
+                return
+
+            with st.status(loader_msg, expanded=True) as status:
+
+                status.update(label="🤖 Finding answer in transcript…", state="running")
+
+                try:
+                    rag_chain = RAGChain(
+                        model_name=self.model_name,
+                        gemini_model=self.gemini_model_type,
+                        openai_model=self.openai_model_type,
+                    )
+
+                    self.video_qa_answer = rag_chain.answer_video_question(
+                        transcript=self.transcript,
+                        question=user_question
+                    )
+
+                    status.update(label="✅ Answer ready!", state="complete")
+
+                except Exception as err:
+                    status.update(label="Failed to generate answer.", state="error")
+                    st.error(f"❌ Error: {err}", icon="📋")
+                    return
+
+            st.markdown("---")
+            st.markdown("## 💬 Answer")
+            st.markdown('<div class="output-box">', unsafe_allow_html=True)
+            st.write(self.video_qa_answer)
+            st.markdown("</div>", unsafe_allow_html=True)
+            self._show_copy_download(self.video_qa_answer, f"{self.video_title}_qa.txt")
+
     # ── PDF Mode: Generate Summary ───────────────────────────────────────────
 
     def generate_pdf_summary(self, loader_msg):
@@ -557,7 +630,7 @@ class AIVideoSummarizer:
 
                 video_mode = st.radio(
                     "Output type",
-                    [":rainbow[**AI Summary**]", ":rainbow[**AI Timestamps**]", "**Transcript**"],
+                    [":rainbow[**AI Summary**]", ":rainbow[**AI Timestamps**]", "**Transcript**", "❓ **Q&A**"],
                     horizontal=True,
                     label_visibility="collapsed",
                 )
@@ -568,6 +641,8 @@ class AIVideoSummarizer:
                     self.generate_summary(loader[n])
                 elif video_mode == ":rainbow[**AI Timestamps**]":
                     self.generate_time_stamps(loader[n])
+                elif video_mode == "❓ **Q&A**":
+                    self.video_question_answering(loader[n])
                 else:
                     self.generate_transcript(loader[0])
 

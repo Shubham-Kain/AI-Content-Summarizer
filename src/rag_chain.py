@@ -1,5 +1,6 @@
 from src.pdf_processor import PDFProcessor
 from src.model import Model
+from src.prompt import Prompt
 
 
 class RAGChain:
@@ -132,6 +133,38 @@ Provide a clear and accurate answer."""
             
         except Exception as e:
             raise Exception(f"Failed to answer question: {str(e)}")
+    
+    def answer_video_question(self, transcript: str, question: str) -> str:
+        """
+        Answer a question about a YouTube video using its transcript.
+        
+        Args:
+            transcript: Video transcript text
+            question: User's question about the video
+            
+        Returns:
+            Answer based on video transcript
+        """
+        if not transcript:
+            raise Exception("No video transcript available. Upload a video first.")
+        
+        try:
+            prompt = Prompt.prompt1(ID="video_qa")
+            
+            full_prompt = f"""{prompt}
+
+Question: {question}
+
+Video Transcript:
+{transcript}
+
+Provide a clear and accurate answer based on the transcript."""
+            
+            answer = self._run_model(transcript, full_prompt)
+            return answer
+            
+        except Exception as e:
+            raise Exception(f"Failed to answer video question: {str(e)}")
     
     def _run_model(self, context: str, prompt: str) -> str:
         """

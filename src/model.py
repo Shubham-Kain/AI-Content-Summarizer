@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 from google import genai
-from openai import OpenAI
 
 
 class Model:
@@ -45,33 +44,4 @@ class Model:
             # BUG FIX: was returning a tuple (error_str, str(e)) — now returns plain string
             return f"⚠️ Gemini API error: {str(e)}"
 
-    @staticmethod
-    def openai_gpt(transcript, prompt, extra="", model_type="gpt-4o-mini"):
-        load_dotenv()
-
-        # BUG FIX: validate transcript BEFORE sending to model
-        clean_transcript = Model._validate_transcript(transcript)
-        if clean_transcript is None:
-            return "⚠️ No transcript was found for this video. Cannot generate a summary."
-
-        try:
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-            # BUG FIX: added clear separator
-            full_content = (
-                f"{prompt}\n\n"
-                f"{extra}\n\n"
-                f"--- TRANSCRIPT START ---\n{clean_transcript}\n--- TRANSCRIPT END ---"
-            )
-
-            # BUG FIX: was using client.responses.create (Responses API — wrong).
-            # Standard Chat Completions API is client.chat.completions.create.
-            response = client.chat.completions.create(
-                model=model_type,
-                messages=[{"role": "user", "content": full_content}],
-            )
-            return response.choices[0].message.content
-
-        except Exception as e:
-            # BUG FIX: was returning a tuple — now returns plain string
-            return f"⚠️ OpenAI API error: {str(e)}"
+    
