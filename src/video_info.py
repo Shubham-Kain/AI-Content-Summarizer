@@ -48,10 +48,10 @@ class GetVideo:
 
         # Try manual English first, then fall back to any auto-generated
         try:
-            transcript = transcript_list.find_transcript(["en"])
+            transcript = transcript_list.find_transcript(["en","hi"])
         except Exception:
             try:
-                transcript = transcript_list.find_generated_transcript(["en"])
+                transcript = transcript_list.find_generated_transcript(["en","hi"])
             except Exception:
                 # Last resort: grab the first available transcript
                 available = list(transcript_list)
@@ -82,10 +82,10 @@ class GetVideo:
 
         # BUG FIX: was missing fallback to auto-generated transcript
         try:
-            transcript = transcript_list.find_transcript(["en"])
+            transcript = transcript_list.find_transcript(["en","hi"])
         except Exception:
             try:
-                transcript = transcript_list.find_generated_transcript(["en"])
+                transcript = transcript_list.find_generated_transcript(["en","hi"])
             except Exception:
                 available = list(transcript_list)
                 if not available:

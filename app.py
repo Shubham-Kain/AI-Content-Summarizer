@@ -12,15 +12,13 @@ from st_copy_to_clipboard import st_copy_to_clipboard
 
 
 # ── Caching wrappers ────────────────────────────────────────────────────────
-# BUG FIX: GetVideo methods now RAISE exceptions, so these wrappers correctly
-# return None on failure instead of forwarding error strings to the model.
 
 @st.cache_data(show_spinner=False)
 def get_transcript_cached(url):
     try:
         return GetVideo.transcript(url)
     except Exception as e:
-        return None, str(e)        # (None, reason) tuple on failure
+        return None        # Return None on failure
 
 
 @st.cache_data(show_spinner=False)
@@ -28,8 +26,7 @@ def get_transcript_time_cached(url):
     try:
         return GetVideo.transcript_time(url)
     except Exception as e:
-        return None, str(e)
-
+        return None
 
 def _unpack_transcript(result):
     """Return (transcript_str_or_None, error_str_or_None)."""
@@ -63,7 +60,6 @@ class AIVideoSummarizer:
 
         self.model_name = None
         self.gemini_model_type = "gemini-2.5-flash"
-        self.openai_model_type = "gpt-4o-mini"   # BUG FIX: gpt-5-nano doesn't exist
 
         self.model_env_checker = []
 
@@ -75,7 +71,7 @@ class AIVideoSummarizer:
         /* ── Typography ── */
         .main-title {
             text-align: center;
-            font-size: 42px;
+            font-size: 45px;
             font-weight: 800;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             -webkit-background-clip: text;
@@ -204,15 +200,10 @@ class AIVideoSummarizer:
         # Detect available models from env
         if os.getenv("GOOGLE_GEMINI_API_KEY"):
             self.model_env_checker.append("Gemini")
-        if os.getenv("OPENAI_API_KEY"):
-            self.model_env_checker.append("OpenAI")
 
         st.markdown("---")
         st.markdown('<div class="section-header">AI Model</div>', unsafe_allow_html=True)
 
-        if not self.model_env_checker:
-            st.warning("No API keys found in `.env`. Add `GOOGLE_GEMINI_API_KEY` or `OPENAI_API_KEY`.", icon="⚠️")
-            st.stop()
 
         self.model_name = st.selectbox("Provider", self.model_env_checker, label_visibility="collapsed")
 
@@ -235,13 +226,6 @@ class AIVideoSummarizer:
                 st.warning("Enter a Gemini model name to continue.")
                 st.stop()
 
-        elif self.model_name == "OpenAI":
-            openai_models = ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "Custom"]
-            selected = st.selectbox("OpenAI Model", openai_models)
-            if selected == "Custom":
-                self.openai_model_type = st.text_input("Model name", placeholder="e.g. gpt-4o")
-            else:
-                self.openai_model_type = selected
 
         # ── Video preview ────────────────────────────────────────────────────
         if self.youtube_url:
@@ -272,9 +256,6 @@ class AIVideoSummarizer:
         if os.getenv("GOOGLE_GEMINI_API_KEY"):
             if "Gemini" not in self.model_env_checker:
                 self.model_env_checker.append("Gemini")
-        if os.getenv("OPENAI_API_KEY"):
-            if "OpenAI" not in self.model_env_checker:
-                self.model_env_checker.append("OpenAI")
 
         st.markdown("---")
         st.markdown('<div class="section-header">AI Model</div>', unsafe_allow_html=True)
@@ -304,13 +285,6 @@ class AIVideoSummarizer:
                 st.warning("Enter a Gemini model name to continue.")
                 st.stop()
 
-        elif self.model_name == "OpenAI":
-            openai_models = ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "Custom"]
-            selected = st.selectbox("OpenAI Model", openai_models, key="pdf_openai")
-            if selected == "Custom":
-                self.openai_model_type = st.text_input("Model name", placeholder="e.g. gpt-4o", key="pdf_openai_custom")
-            else:
-                self.openai_model_type = selected
 
         # ── PDF info display ─────────────────────────────────────────────────
         if self.pdf_file:
@@ -357,8 +331,6 @@ class AIVideoSummarizer:
                 raw = get_transcript_cached(self.youtube_url)
                 transcript, err = _unpack_transcript(raw)
 
-                # BUG FIX: surface transcript errors to user instead of silently
-                # sending error text to the model (which caused hallucinated summaries)
                 if not transcript:
                     status.update(label="Transcript fetch failed.", state="error")
                     st.error(
@@ -630,7 +602,7 @@ class AIVideoSummarizer:
 
                 video_mode = st.radio(
                     "Output type",
-                    [":rainbow[**AI Summary**]", ":rainbow[**AI Timestamps**]", "**Transcript**", "❓ **Q&A**"],
+                    [":rainbow[**AI Summary**]", ":rainbow[**AI Timestamps**]", ":rainbow[**Transcript**]", ":rainbow[❓ **Q&A**]"],
                     horizontal=True,
                     label_visibility="collapsed",
                 )

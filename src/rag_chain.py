@@ -6,8 +6,7 @@ from src.prompt import Prompt
 class RAGChain:
     """RAG pipeline for PDF summarization and Q&A."""
     
-    def __init__(self, model_name: str, gemini_model: str = "gemini-2.5-flash", 
-                 openai_model: str = "gpt-4o-mini"):
+    def __init__(self, model_name: str, gemini_model: str = "gemini-2.5-flash", openai_model: str = "gpt-4"):
         """
         Initialize RAG chain with model selection.
         
@@ -149,9 +148,27 @@ Provide a clear and accurate answer."""
             raise Exception("No video transcript available. Upload a video first.")
         
         try:
-            prompt = Prompt.prompt1(ID="video_qa")
+            # Get the video_qa prompt template
+            try:
+                prompt_template = Prompt.prompt1(ID="video_qa")
+            except NameError:
+                # Fallback if Prompt is not available - use default prompt
+                prompt_template = """
+You are a helpful video assistant that answers questions based on provided video transcript content.
+
+TASK
+Answer the user's question using ONLY the information from the provided video transcript.
+
+RULES
+- Answer based exclusively on the video transcript content
+- If the answer is not found in the transcript, clearly state: "This information is not covered in the video."
+- Provide clear, concise answers
+- Use simple language
+- Include relevant quotes or timestamps from the transcript when helpful
+- Be accurate and truthful
+"""
             
-            full_prompt = f"""{prompt}
+            full_prompt = f"""{prompt_template}
 
 Question: {question}
 
@@ -183,9 +200,4 @@ Provide a clear and accurate answer based on the transcript."""
                 prompt=prompt,
                 model_type=self.gemini_model,
             )
-        else:  # OpenAI
-            return Model.openai_gpt(
-                transcript=context,
-                prompt=prompt,
-                model_type=self.openai_model,
-            )
+       

@@ -1,6 +1,5 @@
 import random
 
-
 class Misc:
 
     @staticmethod
@@ -33,7 +32,7 @@ class Misc:
         .footer {
             position: relative;
             left: 0;
-            top: -25px;
+            top: -20px;
             bottom: 0;
             width: 100%;
             background-color: transparent;
@@ -41,8 +40,6 @@ class Misc:
             text-align: center;
         }
         </style>
-        <div class="footer">
-            <p>Built with ❤️ using Streamlit &amp; AI</p>
-        </div>
+        
         """
         return ft
