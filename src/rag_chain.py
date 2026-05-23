@@ -6,16 +6,18 @@ from src.prompt import Prompt
 class RAGChain:
     """RAG pipeline for PDF summarization and Q&A."""
     
-    def __init__(self, model_name: str, gemini_model: str = "gemini-2.5-flash"):
+    def __init__(self, model_name: str, gemini_model: str = "gemini-2.5-flash", openai_model: str = "gpt-4o-mini"):
         """
         Initialize RAG chain with model selection.
         
         Args:
             model_name: "Gemini" or "OpenAI"
             gemini_model: Gemini model type
+            openai_model: OpenAI model type
         """
         self.model_name = model_name
         self.gemini_model = gemini_model
+        self.openai_model = openai_model
         self.pdf_processor = None
     
     def initialize_with_pdf(self, pdf_file, pdf_name: str) -> dict:
@@ -186,7 +188,7 @@ Provide a clear and accurate answer based on the transcript."""
         Run the selected model with context.
         
         Args:
-            context: Retrieved context from PDF
+            context: Retrieved context from PDF or video transcript
             prompt: User prompt
             
         Returns:
@@ -198,4 +200,5 @@ Provide a clear and accurate answer based on the transcript."""
                 prompt=prompt,
                 model_type=self.gemini_model,
             )
-       
+        else:
+            raise Exception(f"Unsupported model: {self.model_name}")

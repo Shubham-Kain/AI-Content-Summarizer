@@ -18,7 +18,7 @@ def get_transcript_cached(url):
     try:
         return GetVideo.transcript(url)
     except Exception as e:
-        return None        # Return None on failure
+        return None, str(e)  # Return tuple with error message
 
 
 @st.cache_data(show_spinner=False)
@@ -58,8 +58,12 @@ class AIVideoSummarizer:
         self.pdf_summary = None
         self.pdf_qa_answer = None
 
+        # Video Q&A state
+        self.video_qa_answer = None
+
         self.model_name = None
         self.gemini_model_type = "gemini-2.5-flash"
+        self.openai_model_type = "gpt-4o-mini"
 
         self.model_env_checker = []
 
@@ -613,10 +617,10 @@ class AIVideoSummarizer:
                     self.generate_summary(loader[n])
                 elif video_mode == ":rainbow[**AI Timestamps**]":
                     self.generate_time_stamps(loader[n])
-                elif video_mode == "❓ **Q&A**":
-                    self.video_question_answering(loader[n])
-                else:
+                elif video_mode == ":rainbow[**Transcript**]":
                     self.generate_transcript(loader[0])
+                elif video_mode == ":rainbow[❓ **Q&A**]":
+                    self.video_question_answering(loader[n])
 
         # ── PDF Document Mode ────────────────────────────────────────────────
         else:
