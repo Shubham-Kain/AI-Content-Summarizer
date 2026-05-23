@@ -6,18 +6,16 @@ from src.prompt import Prompt
 class RAGChain:
     """RAG pipeline for PDF summarization and Q&A."""
     
-    def __init__(self, model_name: str, gemini_model: str = "gemini-2.5-flash", openai_model: str = "gpt-4"):
+    def __init__(self, model_name: str, gemini_model: str = "gemini-2.5-flash"):
         """
         Initialize RAG chain with model selection.
         
         Args:
             model_name: "Gemini" or "OpenAI"
             gemini_model: Gemini model type
-            openai_model: OpenAI model type
         """
         self.model_name = model_name
         self.gemini_model = gemini_model
-        self.openai_model = openai_model
         self.pdf_processor = None
     
     def initialize_with_pdf(self, pdf_file, pdf_name: str) -> dict:
