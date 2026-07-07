@@ -17,7 +17,17 @@ class GetVideo:
 
     @staticmethod
     def title(link):
-        """Gets the title of a YouTube video."""
+       """Gets the title of a YouTube video via the oEmbed API (reliable on cloud/server IPs)."""
+       video_id = GetVideo.Id(link)
+       if not video_id:
+           return "Unknown Title"
+       try:
+          oembed_url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
+          r = requests.get(oembed_url, timeout=10)
+          r.raise_for_status()
+          return r.json().get("title", "Unknown Title")
+       except Exception:
+        # Fallback: try the old scrape method (works if oEmbed is ever unavailable)
         try:
             headers = {"User-Agent": "Mozilla/5.0"}
             r = requests.get(link, headers=headers, timeout=10)
@@ -25,13 +35,12 @@ class GetVideo:
             title_tag = soup.find("meta", itemprop="name")
             if title_tag and title_tag.get("content"):
                 return title_tag["content"]
-            # Fallback: og:title
             og_title = soup.find("meta", property="og:title")
             if og_title and og_title.get("content"):
                 return og_title["content"]
-            return "Unknown Title"
         except Exception:
-            return "Unknown Title"
+            pass
+        return "Unknown Title"
 
     @staticmethod
     def transcript(link):
